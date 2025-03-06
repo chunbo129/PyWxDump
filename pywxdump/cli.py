@@ -13,6 +13,8 @@ import json
 from pywxdump import *
 import pywxdump
 
+
+
 wxdump_ascii = r"""
 ██████╗ ██╗   ██╗██╗    ██╗██╗  ██╗██████╗ ██╗   ██╗███╗   ███╗██████╗ 
 ██╔══██╗╚██╗ ██╔╝██║    ██║╚██╗██╔╝██╔══██╗██║   ██║████╗ ████║██╔══██╗
@@ -295,15 +297,38 @@ class MainShowChatRecords(BaseSubMainClass):
 
 class MainExportChatRecords(BaseSubMainClass):
     mode = "export"
-    parser_kwargs = {"help": "[已废弃]聊天记录导出为html"}
+    parser_kwargs = {"help": "聊天记录导出为csv"}
 
     def init_parses(self, parser):
         # 添加 'export' 子命令解析器
+        parser.add_argument("-wid", "--wxid", required=True, help="要导出聊天记录的微信ID")
+        parser.add_argument("-i", "--mergepath", required=True, help="mergedb的路径")
+        parser.add_argument("-o", "--outpath", default=".", help="导出文件的输出路径")
+        parser.add_argument("-myid", "--my_wxid", required=True, help="自己的微信ID")
+        parser.add_argument("-tl", "--timelimit", default=None, help="导出时间限制（例如，3，表示导出3天内的记录）") 
         return parser
-
     def run(self, args):
-        print(f"[*] PyWxDump v{pywxdump.__version__}")
-        print("[+] export命令已废弃，请使用ui命令[wxdump ui]或api命令[wxdump api]启动服务")
+        wxid = args.wxid
+        outpath = args.outpath
+        days = args.timelimit
+        # 获取 my_wxid，这里假设可以通过某种方式获取，可按需修改
+        from pywxdump.api.export import export_csv
+        my_wxid = args.my_wxid
+        if not my_wxid:
+            print("无法获取 my_wxid，请检查配置。")
+            return
+
+        # 获取 db_config
+        merge_path = args.mergepath
+        db_config = {"key": my_wxid, "type": "sqlite", "path": merge_path}
+
+        # 调用 export_csv 函数导出聊天记录
+        success, message = export_csv(wxid, outpath, db_config, my_wxid, days=days)
+        if success:
+            print(message)
+        else:
+            print(f"导出失败: {message}")
+
 
 
 class MainAll(BaseSubMainClass):
